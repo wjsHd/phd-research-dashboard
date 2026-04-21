@@ -1,6 +1,16 @@
 const STORAGE_KEY = "phd-dashboard-v1";
 const THEME_KEY = "phd-dashboard-theme";
 const POMODORO_SECONDS = 25 * 60;
+const DAILY_QUOTES = [
+  "苟日新，日日新，又日新。-《礼记》",
+  "路虽远，行则将至；事虽难，做则必成。-《荀子》",
+  "不积跬步，无以至千里。-《荀子》",
+  "千淘万漉虽辛苦，吹尽狂沙始到金。-刘禹锡",
+  "The future depends on what you do today. - Mahatma Gandhi",
+  "Success is the sum of small efforts, repeated day in and day out. - Robert Collier",
+  "Discipline is choosing between what you want now and what you want most. - Abraham Lincoln",
+  "Per aspera ad astra. (Through hardships to the stars.)"
+];
 
 const initialData = {
   habits: [
@@ -59,6 +69,7 @@ let timerSecondsLeft = POMODORO_SECONDS;
 let timerId = null;
 
 const todayText = document.querySelector("#todayText");
+const dailyQuote = document.querySelector("#dailyQuote");
 const habitList = document.querySelector("#habitList");
 const habitForm = document.querySelector("#habitForm");
 const habitInput = document.querySelector("#habitInput");
@@ -284,6 +295,15 @@ function renderAll() {
 function renderTopBar() {
   const now = new Date();
   todayText.textContent = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} | 周${"日一二三四五六"[now.getDay()]}`;
+  dailyQuote.textContent = getDailyQuote(now);
+}
+
+function getDailyQuote(date) {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const diff = date - start;
+  const oneDay = 24 * 60 * 60 * 1000;
+  const dayOfYear = Math.floor(diff / oneDay);
+  return DAILY_QUOTES[(dayOfYear - 1) % DAILY_QUOTES.length];
 }
 
 function renderThemeButton() {
