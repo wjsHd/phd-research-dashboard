@@ -169,6 +169,12 @@ select {
   font-size: 0.95rem;
 }
 
+[data-theme="dark"] input,
+[data-theme="dark"] select {
+  background: #171717;
+  color: #e3e3e1;
+}
+
 input:focus,
 select:focus,
 textarea:focus {
@@ -207,6 +213,13 @@ textarea:focus {
   border-radius: 10px;
   padding: 10px 12px;
   background: #ffffff;
+}
+
+[data-theme="dark"] .habit-item,
+[data-theme="dark"] .todo-item,
+[data-theme="dark"] .project-item,
+[data-theme="dark"] .paper-item {
+  background: #171717;
 }
 
 .habit-item {
@@ -252,6 +265,10 @@ textarea:focus {
   min-height: 78px;
   padding: 6px;
   background: #fff;
+}
+
+[data-theme="dark"] .day {
+  background: #171717;
 }
 
 .day.outside {
@@ -330,6 +347,10 @@ textarea:focus {
   background: #e5e7eb;
   overflow: hidden;
   margin-top: 8px;
+}
+
+[data-theme="dark"] .progress-bar {
+  background: #303030;
 }
 
 .progress-inner {
@@ -417,6 +438,10 @@ textarea {
   color: #e4e4e7;
 }
 
+[data-theme="dark"] .stat {
+  background: #171717;
+}
+
 .kanban-board {
   display: grid;
   grid-template-columns: repeat(4, minmax(180px, 1fr));
@@ -456,6 +481,10 @@ textarea {
   cursor: grab;
 }
 
+[data-theme="dark"] .kanban-card {
+  background: #171717;
+}
+
 .kanban-card.dragging {
   opacity: 0.6;
 }
@@ -474,11 +503,22 @@ textarea {
   background: #fff;
 }
 
+[data-theme="dark"] .kpi-item {
+  background: #171717;
+}
+
 .kpi-label {
   color: #64748b;
   margin-bottom: 4px;
 }
 
+[data-theme="dark"] .kpi-label {
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .kanban-title {
+  color: #d4d4d8;
+}
 .kpi-value {
   font-size: 1.2rem;
   font-weight: 700;
