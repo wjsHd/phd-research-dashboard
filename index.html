@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>博士学习科研看板</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1>博士日常学习科研看板</h1>
+      <p id="todayText" class="muted"></p>
+      <p class="subhead">参考常见实践：任务分层 + 日历排程 + 项目里程碑 + 周复盘</p>
+    </div>
+    <div class="topbar-actions">
+      <button id="exportBtn" class="ghost">导出数据</button>
+      <label class="file-label ghost" for="importFile">导入数据</label>
+      <input id="importFile" type="file" accept="application/json" />
+      <button id="resetBtn" class="ghost danger">重置示例数据</button>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="card overview">
+      <h2>今日概览</h2>
+      <div class="stats">
+        <div class="stat">
+          <span class="label">今日完成习惯</span>
+          <strong id="habitDoneCount">0</strong>
+        </div>
+        <div class="stat">
+          <span class="label">待办剩余</span>
+          <strong id="todoLeftCount">0</strong>
+        </div>
+        <div class="stat">
+          <span class="label">科研里程碑</span>
+          <strong id="milestoneCount">0</strong>
+        </div>
+        <div class="stat">
+          <span class="label">学习专注时长</span>
+          <strong id="focusTime">0h</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="card habits">
+      <h2>每日打卡</h2>
+      <p class="muted">“日习惯 + 连续天数”是多数博士看板最核心的长期积累机制。</p>
+      <div id="habitList" class="habit-list"></div>
+      <form id="habitForm" class="inline-form">
+        <input id="habitInput" type="text" placeholder="新增打卡项（如：读文献60分钟）" required />
+        <button type="submit">添加</button>
+      </form>
+    </section>
+
+    <section class="card calendar">
+      <div class="calendar-head">
+        <h2>日历</h2>
+        <div class="calendar-nav">
+          <button id="prevMonth" class="ghost">&lt;</button>
+          <strong id="monthLabel"></strong>
+          <button id="nextMonth" class="ghost">&gt;</button>
+        </div>
+      </div>
+      <div class="weekday-row">
+        <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+      </div>
+      <div id="calendarGrid" class="calendar-grid"></div>
+      <form id="eventForm" class="inline-form">
+        <input id="eventDate" type="date" required />
+        <input id="eventText" type="text" placeholder="添加日程（组会/实验/投稿ddl）" required />
+        <button type="submit">加入日历</button>
+      </form>
+    </section>
+
+    <section class="card todos">
+      <h2>待办事项</h2>
+      <p class="muted">参考 GTD 做法：按优先级拆解，减少“模糊任务”焦虑。</p>
+      <form id="todoForm" class="todo-form">
+        <input id="todoText" type="text" placeholder="例如：整理实验三数据并画图" required />
+        <select id="todoPriority">
+          <option value="high">高优先级</option>
+          <option value="medium" selected>中优先级</option>
+          <option value="low">低优先级</option>
+        </select>
+        <button type="submit">添加任务</button>
+      </form>
+      <div id="todoList" class="todo-list"></div>
+    </section>
+
+    <section class="card research">
+      <h2>科研进展</h2>
+      <p class="muted">参考论文管理看板：按项目跟踪阶段、进度与下一步行动。</p>
+      <form id="projectForm" class="project-form">
+        <input id="projectName" type="text" placeholder="项目名（如：联邦学习异常检测）" required />
+        <select id="projectStage">
+          <option value="调研">调研</option>
+          <option value="实验设计">实验设计</option>
+          <option value="实验中">实验中</option>
+          <option value="论文写作">论文写作</option>
+          <option value="投稿/返修">投稿/返修</option>
+        </select>
+        <input id="projectProgress" type="number" min="0" max="100" placeholder="进度%" required />
+        <input id="projectNext" type="text" placeholder="下一步（本周可执行）" required />
+        <button type="submit">添加项目</button>
+      </form>
+      <div id="projectList" class="project-list"></div>
+    </section>
+
+    <section class="card kanban">
+      <h2>科研项目 Kanban</h2>
+      <p class="muted">拖拽项目卡片调整状态：待启动 / 进行中 / 阻塞 / 完成。</p>
+      <div class="kanban-board">
+        <div class="kanban-col" data-status="todo">
+          <div class="kanban-title">待启动</div>
+          <div id="kanbanTodo" class="kanban-list"></div>
+        </div>
+        <div class="kanban-col" data-status="doing">
+          <div class="kanban-title">进行中</div>
+          <div id="kanbanDoing" class="kanban-list"></div>
+        </div>
+        <div class="kanban-col" data-status="blocked">
+          <div class="kanban-title">阻塞</div>
+          <div id="kanbanBlocked" class="kanban-list"></div>
+        </div>
+        <div class="kanban-col" data-status="done">
+          <div class="kanban-title">完成</div>
+          <div id="kanbanDone" class="kanban-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card focus">
+      <h2>番茄钟与专注统计</h2>
+      <p class="muted">常见做法是固定 25 分钟冲刺，结束后立即记录累计时长。</p>
+      <div class="focus-panel">
+        <div class="timer-display" id="timerDisplay">25:00</div>
+        <div class="timer-controls">
+          <button id="startTimerBtn">开始</button>
+          <button id="pauseTimerBtn" class="ghost">暂停</button>
+          <button id="resetTimerBtn" class="ghost">重置</button>
+          <button id="completeTimerBtn" class="ghost">完成一个番茄</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card literature">
+      <h2>文献数据库</h2>
+      <p class="muted">参考“文献池 + 状态流转（待读/在读/精读完成）”的科研管理方式。</p>
+      <form id="paperForm" class="project-form">
+        <input id="paperTitle" type="text" placeholder="文献标题" required />
+        <input id="paperTag" type="text" placeholder="方向标签（如：LLM、联邦学习）" required />
+        <select id="paperStatus">
+          <option value="待读">待读</option>
+          <option value="在读">在读</option>
+          <option value="精读完成">精读完成</option>
+        </select>
+        <input id="paperNote" type="text" placeholder="一句话笔记/贡献点" required />
+        <button type="submit">添加文献</button>
+      </form>
+      <div id="paperList" class="paper-list"></div>
+    </section>
+
+    <section class="card report">
+      <h2>周报生成器</h2>
+      <p class="muted">按“本周完成、进行中、下周计划、风险项”自动生成，适合发导师周报。</p>
+      <div class="timer-controls">
+        <button id="generateReportBtn">生成本周周报</button>
+        <button id="copyReportBtn" class="ghost">复制文本</button>
+      </div>
+      <textarea id="weeklyReport" rows="12" placeholder="点击“生成本周周报”"></textarea>
+    </section>
+
+    <section class="card kpi">
+      <h2>月度目标与 KPI 仪表盘</h2>
+      <p class="muted">参考常见科研 dashboard：为论文阅读、实验轮次、写作字数设月度目标。</p>
+      <form id="kpiForm" class="project-form">
+        <input id="paperTarget" type="number" min="1" placeholder="论文目标(篇)" required />
+        <input id="expTarget" type="number" min="1" placeholder="实验目标(次)" required />
+        <input id="writingTarget" type="number" min="500" step="100" placeholder="写作目标(字)" required />
+        <input id="expCurrent" type="number" min="0" placeholder="本月实验已完成" required />
+        <input id="writingCurrent" type="number" min="0" placeholder="本月已写字数" required />
+        <button type="submit">更新 KPI</button>
+      </form>
+      <div id="kpiGrid" class="kpi-grid"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>建议每晚 5 分钟复盘：更新打卡、清空待办、推进项目下一步、同步周报。</p>
+  </footer>
+
+  <script src="./script.js"></script>
+</body>
+</html>
