@@ -14,6 +14,7 @@
       <p class="subhead">参考常见实践：任务分层 + 日历排程 + 项目里程碑 + 周复盘</p>
     </div>
     <div class="topbar-actions">
+      <button id="themeToggleBtn" class="ghost">深色模式</button>
       <button id="exportBtn" class="ghost">导出数据</button>
       <label class="file-label ghost" for="importFile">导入数据</label>
       <input id="importFile" type="file" accept="application/json" />
@@ -54,6 +55,21 @@
       </form>
     </section>
 
+    <section class="card todos">
+      <h2>待办事项</h2>
+      <p class="muted">参考 GTD 做法：按优先级拆解，减少“模糊任务”焦虑。</p>
+      <form id="todoForm" class="todo-form">
+        <input id="todoText" type="text" placeholder="例如：整理实验三数据并画图" required />
+        <select id="todoPriority">
+          <option value="high">高优先级</option>
+          <option value="medium" selected>中优先级</option>
+          <option value="low">低优先级</option>
+        </select>
+        <button type="submit">添加任务</button>
+      </form>
+      <div id="todoList" class="todo-list"></div>
+    </section>
+
     <section class="card calendar">
       <div class="calendar-head">
         <h2>日历</h2>
@@ -72,21 +88,6 @@
         <input id="eventText" type="text" placeholder="添加日程（组会/实验/投稿ddl）" required />
         <button type="submit">加入日历</button>
       </form>
-    </section>
-
-    <section class="card todos">
-      <h2>待办事项</h2>
-      <p class="muted">参考 GTD 做法：按优先级拆解，减少“模糊任务”焦虑。</p>
-      <form id="todoForm" class="todo-form">
-        <input id="todoText" type="text" placeholder="例如：整理实验三数据并画图" required />
-        <select id="todoPriority">
-          <option value="high">高优先级</option>
-          <option value="medium" selected>中优先级</option>
-          <option value="low">低优先级</option>
-        </select>
-        <button type="submit">添加任务</button>
-      </form>
-      <div id="todoList" class="todo-list"></div>
     </section>
 
     <section class="card research">

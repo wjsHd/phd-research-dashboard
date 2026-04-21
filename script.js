@@ -1,4 +1,5 @@
 const STORAGE_KEY = "phd-dashboard-v1";
+const THEME_KEY = "phd-dashboard-theme";
 const POMODORO_SECONDS = 25 * 60;
 
 const initialData = {
@@ -84,6 +85,7 @@ const kanbanBlocked = document.querySelector("#kanbanBlocked");
 const kanbanDone = document.querySelector("#kanbanDone");
 const kpiForm = document.querySelector("#kpiForm");
 const kpiGrid = document.querySelector("#kpiGrid");
+const themeToggleBtn = document.querySelector("#themeToggleBtn");
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
   viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
@@ -214,6 +216,12 @@ document.querySelector("#copyReportBtn").addEventListener("click", async () => {
   }
 });
 
+themeToggleBtn.addEventListener("click", () => {
+  const current = document.documentElement.getAttribute("data-theme");
+  const next = current === "dark" ? "light" : "dark";
+  applyTheme(next);
+});
+
 kpiForm.addEventListener("submit", (e) => {
   e.preventDefault();
   state.monthlyMetrics.paperTarget = clamp(Number(document.querySelector("#paperTarget").value), 1, 999);
@@ -270,11 +278,17 @@ function renderAll() {
   renderKpi();
   renderOverview();
   renderTimer();
+  renderThemeButton();
 }
 
 function renderTopBar() {
   const now = new Date();
   todayText.textContent = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} | 周${"日一二三四五六"[now.getDay()]}`;
+}
+
+function renderThemeButton() {
+  const current = document.documentElement.getAttribute("data-theme");
+  themeToggleBtn.textContent = current === "dark" ? "浅色模式" : "深色模式";
 }
 
 function renderOverview() {
@@ -718,4 +732,18 @@ function escapeHtml(str) {
     .replaceAll("'", "&#39;");
 }
 
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem(THEME_KEY, theme);
+  renderThemeButton();
+}
+
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  const isDarkPreferred = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const initialTheme = saved || (isDarkPreferred ? "dark" : "light");
+  applyTheme(initialTheme);
+}
+
+initTheme();
 renderAll();
