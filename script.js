@@ -246,6 +246,10 @@ muteBtn.addEventListener("click", () => {
   muteBtn.textContent = isMuted ? "🔇" : "🔊";
 });
 
+document.querySelector("#paperSearch")?.addEventListener("input", () => renderPapers());
+document.querySelector("#paperTagFilter")?.addEventListener("change", () => renderPapers());
+document.querySelector("#paperStatusFilter")?.addEventListener("change", () => renderPapers());
+
 themeToggleBtn.addEventListener("click", () => {
   const current = document.documentElement.getAttribute("data-theme");
   const next = current === "dark" ? "light" : "dark";
@@ -302,7 +306,6 @@ function renderAll() {
   renderHabits();
   renderTodos();
   renderCalendar();
-  renderProjects();
   renderKanban();
   renderPapers();
   renderKpi();
@@ -542,17 +545,48 @@ function renderKanban() {
     const card = document.createElement("div");
     card.className = "kanban-card";
     card.draggable = true;
+
+    const progressColor = p.progress >= 100 ? "#16a34a" : p.progress >= 60 ? "#f59e0b" : "var(--primary)";
+
     card.innerHTML = `
-      <strong>${escapeHtml(p.name)}</strong>
-      <div class="todo-meta">${escapeHtml(p.stage)} | ${p.progress}%</div>
+      <div class="kcard-name">${escapeHtml(p.name)}</div>
+      <div class="kcard-stage">${escapeHtml(p.stage)}</div>
+      <div class="progress-bar" style="margin:6px 0 2px">
+        <div class="progress-inner" style="width:${p.progress}%;background:${progressColor}"></div>
+      </div>
+      <div class="kcard-prog">${p.progress}%</div>
+      <div class="kcard-next">→ ${escapeHtml(p.nextStep)}</div>
     `;
+
+    const actions = document.createElement("div");
+    actions.className = "kcard-actions";
+
+    const plusBtn = document.createElement("button");
+    plusBtn.className = "ghost kcard-btn";
+    plusBtn.textContent = "+10%";
+    plusBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      p.progress = clamp(p.progress + 10, 0, 100);
+      persistAndRender();
+    });
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "ghost danger kcard-btn";
+    delBtn.textContent = "删除";
+    delBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      state.projects = state.projects.filter((x) => x.id !== p.id);
+      persistAndRender();
+    });
+
+    actions.append(plusBtn, delBtn);
+    card.append(actions);
+
     card.addEventListener("dragstart", (e) => {
       card.classList.add("dragging");
       e.dataTransfer?.setData("text/project-id", p.id);
     });
-    card.addEventListener("dragend", () => {
-      card.classList.remove("dragging");
-    });
+    card.addEventListener("dragend", () => card.classList.remove("dragging"));
 
     const boardStatus = p.boardStatus || mapStageToStatus(p.stage, p.progress);
     if (boardStatus === "todo") kanbanTodo.append(card);
@@ -563,21 +597,51 @@ function renderKanban() {
 }
 
 function renderPapers() {
+  const search = (document.querySelector("#paperSearch")?.value || "").toLowerCase().trim();
+  const tagFilter = document.querySelector("#paperTagFilter")?.value || "";
+  const statusFilter = document.querySelector("#paperStatusFilter")?.value || "";
+
+  // Update tag dropdown
+  const tagSelect = document.querySelector("#paperTagFilter");
+  if (tagSelect) {
+    const allTags = [...new Set(state.papers.map((p) => p.tag).filter(Boolean))].sort();
+    const current = tagSelect.value;
+    tagSelect.innerHTML = `<option value="">全部方向</option>` +
+      allTags.map((t) => `<option value="${escapeHtml(t)}" ${t === current ? "selected" : ""}>${escapeHtml(t)}</option>`).join("");
+  }
+
+  const filtered = state.papers.filter((p) => {
+    if (tagFilter && p.tag !== tagFilter) return false;
+    if (statusFilter && p.status !== statusFilter) return false;
+    if (search && !p.title.toLowerCase().includes(search) && !p.note.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const countEl = document.querySelector("#paperCount");
+  if (countEl) countEl.textContent = `共 ${filtered.length} / ${state.papers.length} 篇`;
+
   paperList.innerHTML = "";
-  state.papers.forEach((p) => {
+  if (filtered.length === 0) {
+    paperList.innerHTML = `<p class="muted" style="padding:8px">没有匹配的文献</p>`;
+    return;
+  }
+
+  filtered.forEach((p) => {
     const item = document.createElement("div");
     item.className = "paper-item";
+    const statusClass = p.status === "精读完成" ? "low" : p.status === "在读" ? "medium" : "high";
     item.innerHTML = `
-      <div><strong>${escapeHtml(p.title)}</strong></div>
-      <div class="paper-meta">方向：${escapeHtml(p.tag)} | 状态：${escapeHtml(p.status)}</div>
-      <div class="paper-meta">笔记：${escapeHtml(p.note)}</div>
-      <div class="paper-meta">添加时间：${escapeHtml(p.addedAt)}</div>
+      <div><strong>${highlight(escapeHtml(p.title), search)}</strong></div>
+      <div class="paper-meta" style="margin-top:4px">
+        <span class="pill ${statusClass}">${escapeHtml(p.status)}</span>
+        <span style="margin-left:6px;color:var(--muted)">🏷 ${escapeHtml(p.tag)}</span>
+      </div>
+      <div class="paper-meta" style="margin-top:4px">📝 ${highlight(escapeHtml(p.note), search)}</div>
+      <div class="paper-meta" style="margin-top:2px">🗓 ${escapeHtml(p.addedAt)}</div>
     `;
 
     const row = document.createElement("div");
-    row.style.display = "flex";
-    row.style.gap = "8px";
-    row.style.marginTop = "8px";
+    row.style.cssText = "display:flex;gap:8px;margin-top:8px";
 
     const nextBtn = document.createElement("button");
     nextBtn.className = "ghost";
@@ -599,6 +663,12 @@ function renderPapers() {
     item.append(row);
     paperList.append(item);
   });
+}
+
+function highlight(text, keyword) {
+  if (!keyword) return text;
+  const re = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+  return text.replace(re, `<mark>$1</mark>`);
 }
 
 function renderKpi() {

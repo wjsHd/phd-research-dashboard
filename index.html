@@ -109,11 +109,11 @@
       </form>
     </section>
 
-    <section class="card research">
-      <h2>科研进展</h2>
-      <p class="muted">参考论文管理看板：按项目跟踪阶段、进度与下一步行动。</p>
+    <section class="card kanban">
+      <h2>科研项目看板</h2>
+      <p class="muted">拖拽卡片切换状态，在卡片内直接更新进度与下一步行动。</p>
       <form id="projectForm" class="project-form">
-        <input id="projectName" type="text" placeholder="项目名（如：联邦学习异常检测）" required />
+        <input id="projectName" type="text" placeholder="项目名（如：土壤重金属污染修复研究）" required />
         <select id="projectStage">
           <option value="调研">调研</option>
           <option value="实验设计">实验设计</option>
@@ -125,27 +125,21 @@
         <input id="projectNext" type="text" placeholder="下一步（本周可执行）" required />
         <button type="submit">添加项目</button>
       </form>
-      <div id="projectList" class="project-list"></div>
-    </section>
-
-    <section class="card kanban">
-      <h2>科研项目 Kanban</h2>
-      <p class="muted">拖拽项目卡片调整状态：待启动 / 进行中 / 阻塞 / 完成。</p>
       <div class="kanban-board">
         <div class="kanban-col" data-status="todo">
-          <div class="kanban-title">待启动</div>
+          <div class="kanban-title">🗂 待启动</div>
           <div id="kanbanTodo" class="kanban-list"></div>
         </div>
         <div class="kanban-col" data-status="doing">
-          <div class="kanban-title">进行中</div>
+          <div class="kanban-title">🔬 进行中</div>
           <div id="kanbanDoing" class="kanban-list"></div>
         </div>
         <div class="kanban-col" data-status="blocked">
-          <div class="kanban-title">阻塞</div>
+          <div class="kanban-title">⚠️ 阻塞</div>
           <div id="kanbanBlocked" class="kanban-list"></div>
         </div>
         <div class="kanban-col" data-status="done">
-          <div class="kanban-title">完成</div>
+          <div class="kanban-title">✅ 完成</div>
           <div id="kanbanDone" class="kanban-list"></div>
         </div>
       </div>
@@ -184,21 +178,32 @@
       <div id="forestGrid" class="forest-grid"></div>
     </section>
 
-    <section class="card literature">
+    <section class=”card literature”>
       <h2>文献数据库</h2>
-      <p class="muted">参考“文献池 + 状态流转（待读/在读/精读完成）”的科研管理方式。</p>
-      <form id="paperForm" class="project-form">
-        <input id="paperTitle" type="text" placeholder="文献标题" required />
-        <input id="paperTag" type="text" placeholder="方向标签（如：LLM、联邦学习）" required />
-        <select id="paperStatus">
-          <option value="待读">待读</option>
-          <option value="在读">在读</option>
-          <option value="精读完成">精读完成</option>
+      <p class=”muted”>搜索标题/笔记，或按方向标签和状态筛选。</p>
+      <form id=”paperForm” class=”project-form”>
+        <input id=”paperTitle” type=”text” placeholder=”文献标题” required />
+        <input id=”paperTag” type=”text” placeholder=”方向标签（如：重金属、植物修复）” required />
+        <select id=”paperStatus”>
+          <option value=”待读”>待读</option>
+          <option value=”在读”>在读</option>
+          <option value=”精读完成”>精读完成</option>
         </select>
-        <input id="paperNote" type="text" placeholder="一句话笔记/贡献点" required />
-        <button type="submit">添加文献</button>
+        <input id=”paperNote” type=”text” placeholder=”一句话笔记/贡献点” required />
+        <button type=”submit”>添加文献</button>
       </form>
-      <div id="paperList" class="paper-list"></div>
+      <div class=”paper-filters”>
+        <input id=”paperSearch” type=”text” placeholder=”🔍 搜索标题或笔记…” />
+        <select id=”paperTagFilter”><option value=””>全部方向</option></select>
+        <select id=”paperStatusFilter”>
+          <option value=””>全部状态</option>
+          <option value=”待读”>待读</option>
+          <option value=”在读”>在读</option>
+          <option value=”精读完成”>精读完成</option>
+        </select>
+        <span id=”paperCount” class=”muted paper-count”></span>
+      </div>
+      <div id=”paperList” class=”paper-list”></div>
     </section>
 
     <section class="card report">
