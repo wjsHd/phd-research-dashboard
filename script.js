@@ -1,6 +1,7 @@
 const STORAGE_KEY = "phd-dashboard-v1";
 const THEME_KEY = "phd-dashboard-theme";
 const POMODORO_SECONDS = 25 * 60;
+const BREAK_SECONDS = 5 * 60;
 const DAILY_QUOTES = [
   "苟日新，日日新，又日新。-《礼记》",
   "路虽远，行则将至；事虽难，做则必成。-《荀子》",
@@ -67,6 +68,8 @@ const state = loadData();
 let viewDate = new Date();
 let timerSecondsLeft = POMODORO_SECONDS;
 let timerId = null;
+let isBreakMode = false;
+let isMuted = false;
 
 const todayText = document.querySelector("#todayText");
 const dailyQuote = document.querySelector("#dailyQuote");
@@ -77,6 +80,7 @@ const habitDoneCount = document.querySelector("#habitDoneCount");
 const todoLeftCount = document.querySelector("#todoLeftCount");
 const milestoneCount = document.querySelector("#milestoneCount");
 const focusTime = document.querySelector("#focusTime");
+const treeCount = document.querySelector("#treeCount");
 const todoForm = document.querySelector("#todoForm");
 const todoList = document.querySelector("#todoList");
 const eventForm = document.querySelector("#eventForm");
@@ -97,6 +101,14 @@ const kanbanDone = document.querySelector("#kanbanDone");
 const kpiForm = document.querySelector("#kpiForm");
 const kpiGrid = document.querySelector("#kpiGrid");
 const themeToggleBtn = document.querySelector("#themeToggleBtn");
+const forestStats = document.querySelector("#forestStats");
+const forestGrid = document.querySelector("#forestGrid");
+const ringProgress = document.querySelector("#ringProgress");
+const timerTreeEmoji = document.querySelector("#timerTreeEmoji");
+const timerModeLabel = document.querySelector("#timerModeLabel");
+const breakTimerBtn = document.querySelector("#breakTimerBtn");
+const sessionTag = document.querySelector("#sessionTag");
+const muteBtn = document.querySelector("#muteBtn");
 
 document.querySelector("#prevMonth").addEventListener("click", () => {
   viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
@@ -136,9 +148,9 @@ document.querySelector("#importFile").addEventListener("change", async (e) => {
     stopTimer();
     timerSecondsLeft = POMODORO_SECONDS;
     persistAndRender();
-    alert("数据导入成功");
+    showToast("数据导入成功 ✓", "success");
   } catch {
-    alert("导入失败，请检查 JSON 文件格式");
+    showToast("导入失败，请检查 JSON 文件格式", "error");
   }
   e.target.value = "";
 });
@@ -203,12 +215,14 @@ document.querySelector("#startTimerBtn").addEventListener("click", startTimer);
 document.querySelector("#pauseTimerBtn").addEventListener("click", stopTimer);
 document.querySelector("#resetTimerBtn").addEventListener("click", () => {
   stopTimer();
+  isBreakMode = false;
   timerSecondsLeft = POMODORO_SECONDS;
+  if (breakTimerBtn) breakTimerBtn.style.display = "none";
   renderTimer();
 });
 
-document.querySelector("#completeTimerBtn").addEventListener("click", () => {
-  completeOnePomodoro();
+document.querySelector("#breakTimerBtn").addEventListener("click", () => {
+  startBreakTimer();
 });
 
 document.querySelector("#generateReportBtn").addEventListener("click", () => {
@@ -221,10 +235,15 @@ document.querySelector("#copyReportBtn").addEventListener("click", async () => {
   }
   try {
     await navigator.clipboard.writeText(weeklyReport.value);
-    alert("周报已复制");
+    showToast("周报已复制 ✓", "success");
   } catch {
-    alert("复制失败，请手动复制");
+    showToast("复制失败，请手动选中文本框内容复制", "error");
   }
+});
+
+muteBtn.addEventListener("click", () => {
+  isMuted = !isMuted;
+  muteBtn.textContent = isMuted ? "🔇" : "🔊";
 });
 
 themeToggleBtn.addEventListener("click", () => {
@@ -288,6 +307,8 @@ function renderAll() {
   renderPapers();
   renderKpi();
   renderOverview();
+  renderForest();
+  renderHeatmap();
   renderTimer();
   renderThemeButton();
 }
@@ -316,10 +337,51 @@ function renderOverview() {
   const doneHabits = state.habits.filter((h) => h.checkedDates.includes(today)).length;
   const leftTodos = state.todos.filter((t) => !t.done).length;
   const milestones = state.projects.filter((p) => p.progress >= 70).length;
+  const trees = calcTreeMetrics().totalTrees;
   habitDoneCount.textContent = String(doneHabits);
   todoLeftCount.textContent = String(leftTodos);
   milestoneCount.textContent = String(milestones);
   focusTime.textContent = `${(state.focusMinutes / 60).toFixed(1)}h`;
+  treeCount.textContent = String(trees);
+}
+
+function renderForest() {
+  const metrics = calcTreeMetrics();
+  forestStats.innerHTML = `
+    <div class="forest-pill">总树数：<strong>${metrics.totalTrees}</strong></div>
+    <div class="forest-pill">番茄树：<strong>${metrics.focusTrees}</strong></div>
+    <div class="forest-pill">任务树：<strong>${metrics.todoTrees}</strong></div>
+    <div class="forest-pill">里程碑树：<strong>${metrics.projectTrees}</strong></div>
+  `;
+
+  forestGrid.innerHTML = "";
+  const maxShow = Math.max(12, Math.min(36, metrics.totalTrees));
+  for (let i = 0; i < maxShow; i += 1) {
+    const cell = document.createElement("div");
+    cell.className = "tree-cell";
+    if (i < metrics.totalTrees) {
+      const age = metrics.totalTrees - i;
+      const treeEmoji = age <= 2 ? "🌱" : age <= 6 ? "🌿" : age <= 15 ? "🌲" : "🌳";
+      cell.innerHTML = `<span class="tree-icon" title="第 ${metrics.totalTrees - i} 棵树">${treeEmoji}</span>`;
+    } else {
+      cell.innerHTML = `<span class="tree-icon ghost-tree">·</span>`;
+    }
+    forestGrid.append(cell);
+  }
+}
+
+function calcTreeMetrics() {
+  const todoTrees = state.todos.filter((t) => t.done).length;
+  const focusTrees = state.completedPomodoros;
+  const projectTrees = state.projects.filter((p) => p.progress >= 100).length * 2;
+  const habitTrees = state.habits.reduce((sum, h) => sum + Math.floor(h.checkedDates.length / 7), 0);
+  return {
+    todoTrees,
+    focusTrees,
+    projectTrees,
+    habitTrees,
+    totalTrees: todoTrees + focusTrees + projectTrees + habitTrees
+  };
 }
 
 function renderHabits() {
@@ -415,10 +477,15 @@ function renderCalendar() {
     day.innerHTML = `<div class="day-num">${d.getDate()}</div>`;
 
     const events = state.events.filter((e) => e.date === toDateInput(d)).slice(0, 2);
-    events.forEach((e) => {
+    events.forEach((ev) => {
       const event = document.createElement("div");
       event.className = "event";
-      event.textContent = e.text;
+      event.innerHTML = `<span class="event-text">${escapeHtml(ev.text)}</span><button class="event-del-btn" title="删除">×</button>`;
+      event.querySelector(".event-del-btn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        state.events = state.events.filter((x) => x.id !== ev.id);
+        persistAndRender();
+      });
       day.append(event);
     });
     calendarGrid.append(day);
@@ -590,7 +657,8 @@ function startTimer() {
     timerSecondsLeft -= 1;
     renderTimer();
     if (timerSecondsLeft <= 0) {
-      completeOnePomodoro();
+      if (isBreakMode) completeBreak();
+      else completeOnePomodoro();
     }
   }, 1000);
 }
@@ -605,15 +673,82 @@ function renderTimer() {
   const mm = String(Math.floor(timerSecondsLeft / 60)).padStart(2, "0");
   const ss = String(timerSecondsLeft % 60).padStart(2, "0");
   timerDisplay.textContent = `${mm}:${ss}`;
+
+  const totalSeconds = isBreakMode ? BREAK_SECONDS : POMODORO_SECONDS;
+  const progress = 1 - timerSecondsLeft / totalSeconds;
+  const circumference = 314.16;
+  const offset = circumference * (1 - progress);
+
+  if (ringProgress) {
+    ringProgress.style.strokeDashoffset = String(offset);
+    ringProgress.style.stroke = isBreakMode ? "#60a5fa" : "var(--primary)";
+  }
+
+  if (timerTreeEmoji) {
+    if (isBreakMode) {
+      timerTreeEmoji.textContent = "☕";
+    } else if (progress < 0.2) {
+      timerTreeEmoji.textContent = "🌱";
+    } else if (progress < 0.5) {
+      timerTreeEmoji.textContent = "🌿";
+    } else if (progress < 0.8) {
+      timerTreeEmoji.textContent = "🌲";
+    } else {
+      timerTreeEmoji.textContent = "🌳";
+    }
+  }
+
+  if (timerModeLabel) {
+    if (timerId) {
+      timerModeLabel.textContent = isBreakMode ? "休息中 ☕" : "专注中 🔥";
+    } else {
+      timerModeLabel.textContent = isBreakMode ? "休息暂停" : "准备就绪";
+    }
+  }
 }
 
 function completeOnePomodoro() {
   stopTimer();
+  isBreakMode = false;
   timerSecondsLeft = POMODORO_SECONDS;
   state.completedPomodoros += 1;
   state.focusMinutes += 25;
   persistAndRender();
-  alert("已完成 1 个番茄钟，专注时长 +25 分钟");
+  const tag = sessionTag ? sessionTag.value.trim() : "";
+  const tagMsg = tag ? `「${tag}」` : "";
+  playSound("complete");
+  showToast(`🌳 种树成功${tagMsg}！专注 +25 分钟，森林又多了一棵树`, "success", 4000);
+  if (breakTimerBtn) breakTimerBtn.style.display = "";
+}
+
+function startBreakTimer() {
+  isBreakMode = true;
+  timerSecondsLeft = BREAK_SECONDS;
+  if (breakTimerBtn) breakTimerBtn.style.display = "none";
+  startTimer();
+}
+
+function completeBreak() {
+  stopTimer();
+  isBreakMode = false;
+  timerSecondsLeft = POMODORO_SECONDS;
+  renderTimer();
+  playSound("break");
+  showToast("☕ 休息结束！准备开始新的专注", "info", 3000);
+}
+
+function showToast(message, type = "success", duration = 3000) {
+  const container = document.querySelector("#toastContainer");
+  if (!container) return;
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  container.append(toast);
+  requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add("toast-show")));
+  setTimeout(() => {
+    toast.classList.remove("toast-show");
+    toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+  }, duration);
 }
 
 function buildWeeklyReport() {
@@ -763,6 +898,58 @@ function initTheme() {
   const isDarkPreferred = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
   const initialTheme = saved || (isDarkPreferred ? "dark" : "light");
   applyTheme(initialTheme);
+}
+
+function renderHeatmap() {
+  const grid = document.querySelector("#heatmapGrid");
+  if (!grid) return;
+  const totalHabits = state.habits.length || 1;
+  const days = 84;
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - days + 1);
+  grid.innerHTML = "";
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const key = toDateInput(d);
+    const count = state.habits.filter((h) => h.checkedDates.includes(key)).length;
+    const level = totalHabits === 0 ? 0 : Math.min(4, Math.ceil((count / totalHabits) * 4));
+    const cell = document.createElement("div");
+    cell.className = `heatmap-cell level-${level}`;
+    cell.title = `${key}：完成 ${count}/${totalHabits} 个习惯`;
+    grid.append(cell);
+  }
+}
+
+function playSound(type) {
+  if (isMuted) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (type === "complete") {
+      [523, 659, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = "sine";
+        gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.22);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.22 + 0.5);
+        osc.start(ctx.currentTime + i * 0.22);
+        osc.stop(ctx.currentTime + i * 0.22 + 0.6);
+      });
+    } else if (type === "break") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 440;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 1.3);
+    }
+  } catch { /* 浏览器不支持 AudioContext 则静默忽略 */ }
 }
 
 initTheme();

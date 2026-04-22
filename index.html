@@ -42,6 +42,10 @@
           <span class="label">学习专注时长</span>
           <strong id="focusTime">0h</strong>
         </div>
+        <div class="stat">
+          <span class="label">已种小树</span>
+          <strong id="treeCount">0</strong>
+        </div>
       </div>
     </section>
 
@@ -68,6 +72,21 @@
         <button type="submit">添加任务</button>
       </form>
       <div id="todoList" class="todo-list"></div>
+    </section>
+
+    <section class="card heatmap">
+      <h2>习惯打卡热力图</h2>
+      <p class="muted">最近 12 周打卡记录，颜色越深表示当天完成习惯越多。</p>
+      <div id="heatmapGrid" class="heatmap-grid"></div>
+      <div class="heatmap-legend">
+        <span class="muted">少</span>
+        <div class="legend-cell level-0"></div>
+        <div class="legend-cell level-1"></div>
+        <div class="legend-cell level-2"></div>
+        <div class="legend-cell level-3"></div>
+        <div class="legend-cell level-4"></div>
+        <span class="muted">多</span>
+      </div>
     </section>
 
     <section class="card calendar">
@@ -133,17 +152,36 @@
     </section>
 
     <section class="card focus">
-      <h2>番茄钟与专注统计</h2>
-      <p class="muted">常见做法是固定 25 分钟冲刺，结束后立即记录累计时长。</p>
+      <h2>番茄钟与专注森林</h2>
+      <p class="muted">专注时一棵树正在生长，完成后它将永久种入你的森林。</p>
       <div class="focus-panel">
-        <div class="timer-display" id="timerDisplay">25:00</div>
+        <div class="timer-ring-wrapper">
+          <svg class="timer-ring" viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="50"/>
+            <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="50" transform="rotate(-90 60 60)"/>
+          </svg>
+          <div class="timer-inner">
+            <div id="timerTreeEmoji" class="timer-tree-emoji">🌱</div>
+            <div id="timerDisplay" class="timer-display">25:00</div>
+            <div id="timerModeLabel" class="timer-mode-label">准备就绪</div>
+          </div>
+        </div>
+        <input id="sessionTag" type="text" placeholder="本次专注内容（如：写论文 / 读文献）" />
         <div class="timer-controls">
-          <button id="startTimerBtn">开始</button>
+          <button id="startTimerBtn">开始专注</button>
           <button id="pauseTimerBtn" class="ghost">暂停</button>
           <button id="resetTimerBtn" class="ghost">重置</button>
-          <button id="completeTimerBtn" class="ghost">完成一个番茄</button>
+          <button id="muteBtn" class="ghost" title="静音切换">🔊</button>
+          <button id="breakTimerBtn" class="ghost break-btn" style="display:none">☕ 休息 5 分钟</button>
         </div>
       </div>
+    </section>
+
+    <section class="card forest">
+      <h2>专注森林</h2>
+      <p class="muted">每 1 个番茄钟或完成 1 项任务，都会为你的森林长出一棵树。</p>
+      <div id="forestStats" class="forest-stats"></div>
+      <div id="forestGrid" class="forest-grid"></div>
     </section>
 
     <section class="card literature">
@@ -192,6 +230,7 @@
     <p>建议每晚 5 分钟复盘：更新打卡、清空待办、推进项目下一步、同步周报。</p>
   </footer>
 
+  <div id="toastContainer" class="toast-container"></div>
   <script src="./script.js"></script>
 </body>
 </html>
