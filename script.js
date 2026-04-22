@@ -241,7 +241,7 @@ document.querySelector("#copyReportBtn").addEventListener("click", async () => {
   }
 });
 
-muteBtn.addEventListener("click", () => {
+muteBtn?.addEventListener("click", () => {
   isMuted = !isMuted;
   muteBtn.textContent = isMuted ? "🔇" : "🔊";
 });
@@ -302,18 +302,14 @@ function persistAndRender() {
 }
 
 function renderAll() {
-  renderTopBar();
-  renderHabits();
-  renderTodos();
-  renderCalendar();
-  renderKanban();
-  renderPapers();
-  renderKpi();
-  renderOverview();
-  renderForest();
-  renderHeatmap();
-  renderTimer();
-  renderThemeButton();
+  const fns = [
+    renderTopBar, renderHabits, renderTodos, renderCalendar,
+    renderKanban, renderPapers, renderKpi, renderOverview,
+    renderForest, renderHeatmap, renderTimer, renderThemeButton
+  ];
+  fns.forEach((fn) => {
+    try { fn(); } catch (err) { console.error(`[${fn.name}]`, err); }
+  });
 }
 
 function renderTopBar() {
@@ -895,12 +891,18 @@ function getMonday(date) {
 }
 
 function mergeDefaults(raw) {
+  const safeHabits = (Array.isArray(raw.habits) ? raw.habits : structuredClone(initialData.habits))
+    .map((h) => ({ ...h, checkedDates: Array.isArray(h.checkedDates) ? h.checkedDates : [] }));
+  const safePapers = (Array.isArray(raw.papers) ? raw.papers : structuredClone(initialData.papers))
+    .map((p) => ({ tag: "", note: "", status: "待读", title: "", addedAt: toDateInput(new Date()), ...p }));
+  const safeProjects = (Array.isArray(raw.projects) ? raw.projects : structuredClone(initialData.projects))
+    .map((p) => ({ stage: "调研", progress: 0, nextStep: "", name: "", ...p }));
   return {
-    habits: Array.isArray(raw.habits) ? raw.habits : structuredClone(initialData.habits),
+    habits: safeHabits,
     todos: Array.isArray(raw.todos) ? raw.todos : structuredClone(initialData.todos),
     events: Array.isArray(raw.events) ? raw.events : structuredClone(initialData.events),
-    projects: Array.isArray(raw.projects) ? raw.projects : structuredClone(initialData.projects),
-    papers: Array.isArray(raw.papers) ? raw.papers : structuredClone(initialData.papers),
+    projects: safeProjects,
+    papers: safePapers,
     focusMinutes: Number.isFinite(raw.focusMinutes) ? raw.focusMinutes : initialData.focusMinutes,
     completedPomodoros: Number.isFinite(raw.completedPomodoros) ? raw.completedPomodoros : initialData.completedPomodoros,
     monthlyMetrics: raw.monthlyMetrics && typeof raw.monthlyMetrics === "object"
