@@ -458,34 +458,49 @@ function renderTodos() {
 }
 
 function renderCalendar() {
+  if (!calendarGrid) return;
   calendarGrid.innerHTML = "";
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
-  monthLabel.textContent = `${year} 年 ${month + 1} 月`;
+  if (monthLabel) monthLabel.textContent = `${year} 年 ${month + 1} 月`;
 
   const firstDay = new Date(year, month, 1);
   const startWeekday = (firstDay.getDay() + 6) % 7;
   const gridStart = new Date(year, month, 1 - startWeekday);
+  const todayKey = toDateInput(new Date());
 
   for (let i = 0; i < 42; i += 1) {
     const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
     const day = document.createElement("div");
     day.className = "day";
     if (d.getMonth() !== month) day.classList.add("outside");
-    if (toDateInput(d) === toDateInput(new Date())) day.classList.add("today");
-    day.innerHTML = `<div class="day-num">${d.getDate()}</div>`;
+    if (toDateInput(d) === todayKey) day.classList.add("today");
+    const num = document.createElement("div");
+    num.className = "day-num";
+    num.textContent = String(d.getDate());
+    day.append(num);
 
-    const events = state.events.filter((e) => e.date === toDateInput(d)).slice(0, 2);
-    events.forEach((ev) => {
-      const event = document.createElement("div");
-      event.className = "event";
-      event.innerHTML = `<span class="event-text">${escapeHtml(ev.text)}</span><button class="event-del-btn" title="删除">×</button>`;
-      event.querySelector(".event-del-btn").addEventListener("click", (e) => {
-        e.stopPropagation();
-        state.events = state.events.filter((x) => x.id !== ev.id);
-        persistAndRender();
-      });
-      day.append(event);
+    const dayKey = toDateInput(d);
+    const dayEvents = (state.events || []).filter((e) => e && e.date === dayKey).slice(0, 2);
+    dayEvents.forEach((ev) => {
+      try {
+        const eventEl = document.createElement("div");
+        eventEl.className = "event";
+        const textSpan = document.createElement("span");
+        textSpan.className = "event-text";
+        textSpan.textContent = ev.text || "";
+        const delBtn = document.createElement("button");
+        delBtn.className = "event-del-btn";
+        delBtn.title = "删除";
+        delBtn.textContent = "×";
+        delBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          state.events = state.events.filter((x) => x !== ev);
+          persistAndRender();
+        });
+        eventEl.append(textSpan, delBtn);
+        day.append(eventEl);
+      } catch (err) { console.warn("event render failed", err); }
     });
     calendarGrid.append(day);
   }
